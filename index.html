@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistem Aduan Pelajar</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/intro.js@7.0.1/minified/introjs.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/intro.js@7.0.1/minified/intro.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Sistem Aduan Pelajar</h1>
+            <div class="nav">
+                <button id="loginBtn" class="nav-btn">Log Masuk</button>
+                <button id="registerBtn" class="nav-btn">Daftar</button>
+                <button id="logoutBtn" class="nav-btn hidden">Log Keluar</button>
+                <button id="importBtn" class="nav-btn hidden">Import Data</button>
+            </div>
+        </div>
+
+        <div id="mainContent" class="hidden">
+            <div id="studentDashboard" class="dashboard hidden">
+                <h2>Dashboard Pelajar</h2>
+                <div class="dashboard-actions" id="studentActions">
+                    <button id="newComplaintBtn" class="action-btn">Buat Aduan Baru</button>
+                    <button id="viewComplaintsBtn" class="action-btn">Lihat Aduan Saya</button>
+                    <button id="viewFeedbackBtn" class="action-btn">Maklum Balas Aduan</button>
+                </div>
+
+                <div id="complaintSearch" class="form-group">
+                    <label for="studentSearch">Cari Aduan:</label>
+                    <input type="text" id="studentSearch" placeholder="Masukkan ID, tajuk, atau kata kunci...">
+                </div>
+
+                <div id="newComplaintForm" class="form-container hidden">
+                    <h3>Buat Aduan Baru</h3>
+                    <form id="complaintFormElement">
+                        <div class="form-group">
+                            <label for="complaintCategory">Kategori Aduan:</label>
+                            <select id="complaintCategory" required>
+                                <option value="">Pilih Kategori</option>
+                                <option value="akademik">Akademik</option>
+                                <option value="kemudahan">Kemudahan</option>
+                                <option value="kantin">Kantin</option>
+                                <option value="perpustakaan">Perpustakaan</option>
+                                <option value="pengangkutan">Pengangkutan</option>
+                                <option value="asrama">Asrama</option>
+                                <option value="lain-lain">Lain-lain</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="complaintTitle">Tajuk Aduan:</label>
+                            <input type="text" id="complaintTitle" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="complaintDescription">Butiran Aduan:</label>
+                            <textarea id="complaintDescription" rows="5" required></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label for="complaintAttachment">Lampiran (maks 5MB):</label>
+                            <input type="file" id="complaintAttachment" accept="image/*,.pdf">
+                        </div>
+                        <button type="submit">Hantar Aduan</button>
+                        <button type="button" id="cancelComplaint">Batal</button>
+                    </form>
+                </div>
+
+                <div id="studentComplaints" class="complaints-container hidden">
+                    <h3>Aduan Saya</h3>
+                    <div id="studentComplaintsList"></div>
+                </div>
+
+                <div id="feedbackForm" class="form-container hidden">
+                    <h3>Maklum Balas Aduan</h3>
+                    <form id="feedbackFormElement">
+                        <div class="form-group">
+                            <label for="feedbackComplaintId">ID Aduan:</label>
+                            <input type="text" id="feedbackComplaintId" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="feedbackText">Maklum Balas:</label>
+                            <textarea id="feedbackText" rows="5" required></textarea>
+                        </div>
+                        <button type="submit">Hantar Maklum Balas</button>
+                        <button type="button" id="cancelFeedback">Batal</button>
+                    </form>
+                </div>
+            </div>
+
+            <div id="adminDashboard" class="dashboard hidden">
+                <h2>Dashboard Admin</h2>
+                <div class="dashboard-actions" id="adminActions">
+                    <button id="viewAllComplaintsBtn" class="action-btn">Lihat Semua Aduan</button>
+                    <button id="filterComplaintsBtn" class="action-btn">Tapis Aduan</button>
+                    <button id="analyticsBtn" class="action-btn">Analitis Aduan</button>
+                    <button id="auditLogBtn" class="action-btn">Log Audit</button>
+                    <button id="exportBtn" class="action-btn">Eksport Data</button>
+                </div>
+
+                <div id="complaintSearchAdmin" class="form-group">
+                    <label for="adminSearch">Cari Aduan:</label>
+                    <input type="text" id="adminSearch" placeholder="Masukkan ID, tajuk, atau kata kunci...">
+                </div>
+
+                <div id="analyticsContainer" class="form-container hidden">
+                    <h3>Analitis Aduan</h3>
+                    <canvas id="categoryChart" style="max-height: 400px;"></canvas>
+                    <canvas id="statusChart" style="max-height: 400px; margin-top: 20px;"></canvas>
+                </div>
+
+                <div id="filterOptions" class="form-container hidden">
+                    <h3>Tapis Aduan</h3>
+                    <div class="filter-group">
+                        <label for="filterStatus">Status:</label>
+                        <select id="filterStatus">
+                            <option value="">Semua Status</option>
+                            <option value="baru">Baru</option>
+                            <option value="dibaca">Dibaca</option>
+                            <option value="diproses">Diproses</option>
+                            <option value="selesai">Selesai</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label for="filterCategory">Kategori:</label>
+                        <select id="filterCategory">
+                            <option value="">Semua Kategori</option>
+                            <option value="akademik">Akademik</option>
+                            <option value="kemudahan">Kemudahan</option>
+                            <option value="kantin">Kantin</option>
+                            <option value="perpustakaan">Perpustakaan</option>
+                            <option value="pengangkutan">Pengangkutan</option>
+                            <option value="asrama">Asrama</option>
+                            <option value="lain-lain">Lain-lain</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label for="filterPriority">Keutamaan:</label>
+                        <select id="filterPriority">
+                            <option value="">Semua Keutamaan</option>
+                            <option value="rendah">Rendah</option>
+                            <option value="sederhana">Sederhana</option>
+                            <option value="tinggi">Tinggi</option>
+                        </select>
+                    </div>
+                    <button id="applyFilter">Terapkan Tapisan</button>
+                    <button type="button" id="cancelFilter">Batal Tapisan</button>
+                </div>
+
+                <div id="adminComplaints" class="complaints-container">
+                    <h3>Senarai Aduan</h3>
+                    <div id="adminComplaintsList"></div>
+                </div>
+
+                <div id="auditLog" class="form-container hidden">
+                    <h3>Log Audit</h3>
+                    <div id="auditLogList"></div>
+                </div>
+
+                <div id="importForm" class="form-container hidden">
+                    <h3>Import Data Aduan</h3>
+                    <form id="importFormElement">
+                        <div class="form-group">
+                            <label for="importFile">Pilih Fail (XLSX atau CSV):</label>
+                            <input type="file" id="importFile" accept=".xlsx,.csv" required>
+                        </div>
+                        <button type="submit">Import</button>
+                        <button type="button" id="cancelImport">Batal</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div id="loginForm" class="form-container hidden">
+            <h2>Log Masuk</h2>
+            <form id="loginFormElement">
+                <div class="form-group">
+                    <label for="loginEmail">Email:</label>
+                    <input type="email" id="loginEmail" required>
+                </div>
+                <div class="form-group">
+                    <label for="loginPassword">Kata Laluan:</label>
+                    <input type="password" id="loginPassword" required>
+                </div>
+                <div class="form-group">
+                    <label for="loginRole">Peranan:</label>
+                    <select id="loginRole" required>
+                        <option value="">Pilih Peranan</option>
+                        <option value="student">Pelajar</option>
+                        <option value="admin">Admin</option>
+                    </select>
+                </div>
+                <button type="submit">Log Masuk</button>
+                <button type="button" id="cancelLogin">Batal</button>
+            </form>
+        </div>
+
+        <div id="registerForm" class="form-container hidden">
+            <h2>Daftar Akaun</h2>
+            <form id="registerFormElement">
+                <div class="form-group">
+                    <label for="registerName">Nama:</label>
+                    <input type="text" id="registerName" required>
+                </div>
+                <div class="form-group">
+                    <label for="registerEmail">Email:</label>
+                    <input type="email" id="registerEmail" required>
+                </div>
+                <div class="form-group">
+                    <label for="registerPassword">Kata Laluan:</label>
+                    <input type="password" id="registerPassword" required>
+                </div>
+                <div class="form-group">
+                    <label for="registerRole">Peranan:</label>
+                    <select id="registerRole" required>
+                        <option value="">Pilih Peranan</option>
+                        <option value="student">Pelajar</option>
+                        <option value="admin">Admin</option>
+                    </select>
+                </div>
+                <div class="form-group" id="studentIdGroup" style="display: none;">
+                    <label for="registerStudentId">No. Pelajar:</label>
+                    <input type="text" id="registerStudentId">
+                </div>
+                <button type="submit">Daftar</button>
+                <button type="button" id="cancelRegister">Batal</button>
+            </form>
+        </div>
+
+        <div id="welcomeScreen" class="welcome-screen">
+            <h2>Selamat Datang ke Sistem Aduan Pelajar</h2>
+            <p>Sila log masuk atau daftar untuk menggunakan sistem ini.</p>
+            <button id="startTourBtn" class="action-btn">Mula Lawatan Panduan</button>
+        </div>
+    </div>
+
+    <script type="text/javascript">
+        var gk_isXlsx = false;
+        var gk_xlsxFileLookup = {};
+        var gk_fileData = {};
+        function filledCell(cell) {
+            return cell !== '' && cell != null;
+        }
+        function loadFileData(filename) {
+            if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
+                try {
+                    var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
+                    var firstSheetName = workbook.SheetNames[0];
+                    var worksheet = workbook.Sheets[firstSheetName];
+                    var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
+                    var filteredData = jsonData.filter(row => row.some(filledCell));
+                    var headerRowIndex = filteredData.findIndex((row, index) =>
+                        row.filter(filledCell).length >= filteredData[index + 1]?.filter(filledCell).length
+                    );
+                    if (headerRowIndex === -1 || headerRowIndex > 25) {
+                        headerRowIndex = 0;
+                    }
+                    var csv = XLSX.utils.aoa_to_sheet(filteredData.slice(headerRowIndex));
+                    csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
+                    return csv;
+                } catch (e) {
+                    console.error(e);
+                    return "";
+                }
+            }
+            return gk_fileData[filename] || "";
+        }
+    </script>
+    <script src="auth.js"></script>
+    <script src="complaints.js"></script>
+    <script src="admin.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
